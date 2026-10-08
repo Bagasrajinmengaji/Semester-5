@@ -1,8 +1,11 @@
 <?php
 
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -15,5 +18,27 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Penanganan Exception Unauthenticated untuk API
+        $exceptions->render(function (AuthenticationException $e, Request $request) {
+            if ($request->is('api/*') || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Unauthenticated. Token autentikasi tidak ditemukan atau tidak valid.',
+                    'data' => null,
+                    'errors' => null,
+                ], 401);
+            }
+        });
+
+        // Penanganan 404 Not Found untuk API
+        $exceptions->render(function (NotFoundHttpException $e, Request $request) {
+            if ($request->is('api/*') || $request->wantsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Endpoint atau data tidak ditemukan.',
+                    'data' => null,
+                    'errors' => null,
+                ], 404);
+            }
+        });
     })->create();
